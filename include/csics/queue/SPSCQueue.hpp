@@ -59,6 +59,11 @@ class SPSCQueue {
 
     std::size_t capacity() const { return capacity_; }
 
+    bool has_pending_data() const noexcept {
+        return read_index_.load(std::memory_order_acquire) !=
+               write_index_.load(std::memory_order_acquire);
+    }
+
    private:
     std::size_t capacity_;
     std::byte* buffer_;
@@ -173,10 +178,10 @@ class SPSCQueueBlockAdapter {
         std::size_t size;
     };
 
-    bool acquire_write(AdaptedSlot& slot) noexcept {
+    bool acquire_write(AdaptedSlot& slot, size_t len) noexcept {
         SPSCQueue::WriteSlot raw_slot;
         bool acquired =
-            queue_.acquire_write(raw_slot, sizeof(Header) + sizeof(Data));
+            queue_.acquire_write(raw_slot, sizeof(Header) + sizeof(Data) * len);
         if (!acquired) {
             return false;
         }
@@ -187,10 +192,10 @@ class SPSCQueueBlockAdapter {
         return true;
     }
 
-    bool try_acquire_write(AdaptedSlot& slot) noexcept {
+    bool try_acquire_write(AdaptedSlot& slot, size_t len) noexcept {
         SPSCQueue::WriteSlot raw_slot;
         bool acquired =
-            queue_.try_acquire_write(raw_slot, sizeof(Header) + sizeof(Data));
+            queue_.try_acquire_write(raw_slot, sizeof(Header) + sizeof(Data) * len);
         if (!acquired) {
             return false;
         }

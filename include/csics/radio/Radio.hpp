@@ -63,9 +63,7 @@ struct RadioDeviceArgs {
  * @brief Defines the host-side data type for IQ samples.
  */
 enum class StreamDataType {
-    SC8,   // 8-bit signed integer complex, IQ interleaved
     SC16,  // 16-bit signed integer complex, IQ interleaved
-    FC32,  // 32-bit float complex, IQ interleaved
 };
 
 struct SampleLength {
@@ -91,28 +89,45 @@ struct SampleLength {
         std::size_t samples = get_num_samples(sample_rate);
         std::size_t bytes_per_sample = 0;
         switch (data_type) {
-            case StreamDataType::SC8:
-                bytes_per_sample = 2;  // I + Q each 1 byte
-                break;
             case StreamDataType::SC16:
                 bytes_per_sample = 4;  // I + Q each 2 bytes
-                break;
-            case StreamDataType::FC32:
-                bytes_per_sample = 8;  // I + Q each 4 bytes
                 break;
         }
         return samples * bytes_per_sample;
     }
 };
 
+struct Timestamp {
+    uint64_t nanoseconds_since_epoch = 0;
+
+    Timestamp(uint64_t t) : nanoseconds_since_epoch(t) {}
+
+    template <typename Duration>
+    Timestamp(std::chrono::time_point<std::chrono::system_clock, Duration> tp)
+        : nanoseconds_since_epoch(
+              static_cast<uint64_t>(tp.time_since_epoch().count())) {}
+
+    static Timestamp now() {
+        return Timestamp{static_cast<uint64_t>(
+            std::chrono::system_clock::now().time_since_epoch().count())};
+    }
+
+    operator uint64_t() const { return nanoseconds_since_epoch; }
+    template<typename Clock>
+
+    operator std::chrono::time_point<Clock, std::chrono::nanoseconds>() const {
+        return std::chrono::time_point<Clock, std::chrono::nanoseconds>(
+            std::chrono::nanoseconds(nanoseconds_since_epoch));
+    }
+};
+
 struct StreamConfiguration {
-    StreamDataType data_type = StreamDataType::FC32;
+    StreamDataType data_type = StreamDataType::SC16;
     SampleLength sample_length = {SampleLength::Type::NUM_SAMPLES, {1024}};
 };
 template <typename T>
 concept RadioDeviceArgsConvertible =
     std::same_as<T, RadioDeviceArgs> || std::convertible_to<T, RadioDeviceArgs>;
-};
-
+};  // namespace csics::radio
 
 using IQSample = std::complex<int16_t>;

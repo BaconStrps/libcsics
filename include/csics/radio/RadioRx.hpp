@@ -20,27 +20,11 @@ namespace csics::radio {
  */
 class IRadioRx {
    public:
-    struct BlockHeader {
-        uint64_t timestamp_ns;  // Timestamp in nanoseconds since epoch. Derived
-                                // from system clock.
-        uint32_t num_samples;
-        uint32_t reserved;
-    };
 
+    struct StartStatus;
+    struct BlockHeader;
     using RxQueue = csics::queue::SPSCQueueBlockAdapter<BlockHeader, IQSample>;
 
-    struct StartStatus {
-        enum class Code {
-            SUCCESS,
-            HARDWARE_FAILURE,
-            CONFIGURATION_ERROR,
-        } code;
-        RxQueue* queue = nullptr;
-
-        operator bool() const noexcept {
-            return code == Code::SUCCESS && queue != nullptr;
-        }
-    };
 
     virtual ~IRadioRx() = default;
 
@@ -67,23 +51,43 @@ class IRadioRx {
     virtual bool is_streaming() const noexcept = 0;
 
     virtual double get_sample_rate() const noexcept = 0;
-    virtual void set_sample_rate(double rate) noexcept = 0;
+    virtual Timestamp set_sample_rate(double rate) noexcept = 0;
     virtual double get_max_sample_rate() const noexcept = 0;
 
     virtual double get_center_frequency() const noexcept = 0;
-    virtual void set_center_frequency(double freq) noexcept = 0;
+    virtual Timestamp set_center_frequency(double freq) noexcept = 0;
 
     virtual double get_gain() const noexcept = 0;
-    virtual void set_gain(double gain) noexcept = 0;
+    virtual Timestamp set_gain(double gain) noexcept = 0;
 
     virtual RadioConfiguration get_configuration() const noexcept = 0;
-    virtual void set_configuration(
+    virtual Timestamp set_configuration(
         const RadioConfiguration& config) noexcept = 0;
     virtual RadioDeviceInfo get_device_info() const noexcept = 0;
 
     template <RadioDeviceArgsConvertible T>
     static std::unique_ptr<IRadioRx> create_radio_rx(
         T device_args, const RadioConfiguration& config);
+
+    struct StartStatus {
+        enum class Code {
+            SUCCESS,
+            HARDWARE_FAILURE,
+            CONFIGURATION_ERROR,
+        } code;
+        RxQueue* queue = nullptr;
+
+        operator bool() const noexcept {
+            return code == Code::SUCCESS && queue != nullptr;
+        }
+    };
+
+    struct BlockHeader {
+        Timestamp timestamp_ns;  // Timestamp in nanoseconds since epoch. Derived
+                                // from system clock.
+        uint32_t num_samples;
+        uint32_t reserved;
+    };
 };
 
 };  // namespace csics::radio
