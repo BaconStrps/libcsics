@@ -39,3 +39,4 @@ message(STATUS "CSICS build configuration:")
 message(STATUS "  Build type: ${CMAKE_BUILD_TYPE}")
 message(STATUS "  Components: ${COMPONENTS}")
 message(STATUS "  UHD support: ${CSICS_USE_UHD}")
+
