@@ -14,7 +14,7 @@ if (CSICS_USE_UHD)
     set(DEFINITIONS ${DEFINITIONS} CSICS_USE_UHD)
 endif()
 
-add_library(rx OBJECT RadioRx.cpp ${SOURCES})
+add_library(rx STATIC ${SOURCES})
 target_include_directories(rx PUBLIC ${INCLUDE_DIR})
 target_link_libraries(rx PUBLIC ${LIBRARIES})
 target_compile_options(rx PRIVATE ${COMPILE_OPTIONS})

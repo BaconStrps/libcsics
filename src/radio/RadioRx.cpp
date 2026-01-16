@@ -13,7 +13,7 @@ inline bool find_usrp() {
 }
 #endif
 
-std::unique_ptr<IRadioRx> create_radio_rx(
+std::unique_ptr<IRadioRx> IRadioRx::create_radio_rx(
     const RadioDeviceArgs& device_args, const RadioConfiguration& config) {
     switch (device_args.device_type) {
 #ifdef CSICS_USE_UHD
