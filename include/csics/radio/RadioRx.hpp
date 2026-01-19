@@ -1,8 +1,5 @@
 #pragma once
 #include <memory>
-
-#include <uhd/types/device_addr.hpp>
-
 #include <csics/radio/Radio.hpp>
 #include <csics/queue/SPSCQueue.hpp>
 
@@ -85,8 +82,7 @@ class IRadioRx {
     struct BlockHeader {
         Timestamp timestamp_ns;  // Timestamp in nanoseconds since epoch. Derived
                                 // from system clock.
-        uint32_t num_samples;
-        uint32_t reserved;
+        uint64_t num_samples;
     };
 };
 };  // namespace csics::radio

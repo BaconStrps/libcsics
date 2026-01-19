@@ -73,6 +73,9 @@ class SPSCQueue {
         uint64_t size : 63;
     };
 
+#ifdef _MSC_VER
+#pragma warning(disable : 4324) // disable MSVC warning 4324. We don't care about the padding here
+#endif
     alignas(kCacheLineSize) std::atomic<size_t> read_index_;
     alignas(kCacheLineSize) std::atomic<size_t> write_index_;
     alignas(kCacheLineSize) std::atomic<bool> stopped_;
@@ -219,7 +222,6 @@ class SPSCQueueBlockAdapter {
         if (!acquired) {
             return false;
         }
-        auto data = const_cast<std::byte*>(raw_slot.data);
 
         slot.header = reinterpret_cast<Header*>(const_cast<std::byte*>(raw_slot.data));
         slot.data = reinterpret_cast<Data*>(raw_slot.data + sizeof(Header));

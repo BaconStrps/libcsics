@@ -1,6 +1,8 @@
 #pragma once
 #include <csics/radio/RadioRx.hpp>
-#include <uhd/usrp/multi_usrp.hpp>
+// Using C API for now for issues with ABI
+#include <uhd/usrp/usrp.h>
+#include <thread>
 
 namespace csics::radio {
 
@@ -32,8 +34,8 @@ class USRPRadioRx : public IRadioRx {
     queue::SPSCQueue* queue_;
     RxQueue* rx_queue_;
     RadioConfiguration current_config_;
-    uhd::usrp::multi_usrp::sptr usrp_;
-    uhd::rx_streamer::sptr rx_streamer_;
+    uhd_usrp_handle usrp_;
+    uhd_rx_streamer_handle rx_streamer_;
     std::thread rx_thread_;
     std::size_t block_len_;
     

@@ -2,9 +2,7 @@
 
 #include <chrono>
 #include <variant>
-#ifdef CSICS_USE_UHD
-#include <uhd/types/device_addr.hpp>
-#endif
+#include <complex>
 
 namespace csics::radio {
 /** @brief Configuration parameters for the radio receiver. */
@@ -42,9 +40,9 @@ struct RadioDeviceArgs;
 
 #ifdef CSICS_USE_UHD
 struct UsrpArgs {
-    uhd::device_addr_t device_addr;
+    const char* device_args;
     UsrpArgs() = default;
-    UsrpArgs(const uhd::device_addr_t& addr) : device_addr(addr) {}
+    UsrpArgs(const char* args) : device_args(args) {}
     operator RadioDeviceArgs() const;
 };
 #endif

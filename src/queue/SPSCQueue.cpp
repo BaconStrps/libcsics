@@ -9,13 +9,14 @@ namespace csics::queue {
 SPSCQueue::SPSCQueue(size_t capacity) noexcept
     : capacity_(capacity + kCacheLineSize -
                 (capacity % kCacheLineSize)),  // align capacity to cache line
-      buffer_(new (std::align_val_t(kCacheLineSize)) std::byte[capacity]),
+      buffer_(reinterpret_cast<std::byte*>(operator new(capacity_, std::align_val_t{kCacheLineSize}))
+              ),
       read_index_(0),
       write_index_(0),
       stopped_(false) {}
 
 SPSCQueue::~SPSCQueue() noexcept {
-    operator delete[](buffer_, std::align_val_t(kCacheLineSize));
+    operator delete(buffer_, std::align_val_t{kCacheLineSize});
 };
 
 bool SPSCQueue::acquire_write(WriteSlot& slot, std::size_t size) noexcept {
@@ -201,7 +202,7 @@ inline SPSCQueueRange::sentinel SPSCQueueRange::end() const {
 };
 
 SPSCQueueRange::iterator::iterator(SPSCQueue* q) noexcept
-    : queue(q), end_reached(false) {
+    : queue(q), end_reached(false), current_slot{} {
     if (this->queue) {
         bool acquired = this->queue->try_acquire_read(current_slot);
         if (!acquired) {
