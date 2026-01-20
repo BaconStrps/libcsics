@@ -4,6 +4,7 @@
 #include <cstring>
 #include <new>
 #include <thread>
+#include <iostream>
 
 namespace csics::queue {
 SPSCQueue::SPSCQueue(size_t capacity) noexcept
@@ -26,17 +27,16 @@ bool SPSCQueue::acquire_write(WriteSlot& slot, std::size_t size) noexcept {
 
     std::size_t read_index = read_index_.load(std::memory_order_acquire);
     std::size_t write_index = write_index_.load(std::memory_order_acquire);
+    auto not_available = [&]() {
+        read_index = read_index_.load(std::memory_order_acquire);
+        write_index = write_index_.load(std::memory_order_acquire);
+        return write_index + size > read_index && (write_index != read_index) ||
+               stopped_.load(std::memory_order_acquire);
+    };
 
-    auto free_space = (read_index + capacity_ - write_index) % capacity_;
-
-    while (free_space < size + sizeof(QueueSlotHeader)) {
+    while (not_available()) {
+        if (stopped_.load(std::memory_order_acquire)) return false;
         std::this_thread::yield();
-        free_space = (read_index_.load(std::memory_order_acquire) + capacity_ -
-                      write_index) %
-                     capacity_;
-        if (stopped_.load(std::memory_order_acquire)) {
-            return false;
-        }
     }
 
     if (write_index + size + sizeof(QueueSlotHeader) < capacity_) {
@@ -53,6 +53,11 @@ bool SPSCQueue::acquire_write(WriteSlot& slot, std::size_t size) noexcept {
                     sizeof(QueueSlotHeader));
         write_index_.store(0, std::memory_order_release);
         write_index = 0;
+    }
+
+    while (not_available()) {
+        if (stopped_.load(std::memory_order_acquire)) return false;
+        std::this_thread::yield();
     }
 
     QueueSlotHeader header{
@@ -75,11 +80,14 @@ bool SPSCQueue::try_acquire_write(WriteSlot& slot, std::size_t size) noexcept {
 
     std::size_t read_index = read_index_.load(std::memory_order_acquire);
     std::size_t write_index = write_index_.load(std::memory_order_acquire);
+    auto not_available = [&]() {
+        read_index = read_index_.load(std::memory_order_acquire);
+        write_index = write_index_.load(std::memory_order_acquire);
+        return write_index + size > read_index && (write_index != read_index) ||
+               stopped_.load(std::memory_order_acquire);
+    };
 
-    auto free_space = (read_index + capacity_ - write_index) % capacity_;
-
-    if (free_space < size + sizeof(QueueSlotHeader) ||
-        stopped_.load(std::memory_order_acquire)) {
+    if (not_available()) {
         return false;
     }
 
@@ -99,6 +107,10 @@ bool SPSCQueue::try_acquire_write(WriteSlot& slot, std::size_t size) noexcept {
         write_index = 0;
     }
 
+    if (not_available()) {
+        return false;
+    }
+
     QueueSlotHeader header{
         .padded = false,
         .size = size,
@@ -113,9 +125,7 @@ bool SPSCQueue::try_acquire_write(WriteSlot& slot, std::size_t size) noexcept {
 };
 
 bool SPSCQueue::acquire_read(ReadSlot& slot) noexcept {
-    while (read_index_.load(std::memory_order_acquire) ==
-               write_index_.load(std::memory_order_acquire) &&
-           !stopped_.load(std::memory_order_acquire)) {
+    while (!data_available_.load(std::memory_order_acquire)) {
         std::this_thread::yield();
     }
 
@@ -125,9 +135,7 @@ bool SPSCQueue::acquire_read(ReadSlot& slot) noexcept {
         header_ptr = reinterpret_cast<QueueSlotHeader*>(buffer_);
     }
 
-    while (read_index_.load(std::memory_order_acquire) ==
-               write_index_.load(std::memory_order_acquire) &&
-           !stopped_.load(std::memory_order_acquire)) {
+    while (!data_available_.load(std::memory_order_acquire)) {
         std::this_thread::yield();
     }
 
@@ -136,7 +144,6 @@ bool SPSCQueue::acquire_read(ReadSlot& slot) noexcept {
         stopped_.load(std::memory_order_acquire)) {
         return false;
     }
-
     slot.data = buffer_ + read_index_.load(std::memory_order_acquire) +
                 sizeof(QueueSlotHeader);
     slot.size = header_ptr->size;
@@ -163,6 +170,7 @@ bool SPSCQueue::try_acquire_read(ReadSlot& slot) noexcept {
         return false;
     }
 
+    
     slot.data = buffer_ + read_index_.load(std::memory_order_acquire) +
                 sizeof(QueueSlotHeader);
     slot.size = header_ptr->size;
@@ -171,20 +179,25 @@ bool SPSCQueue::try_acquire_read(ReadSlot& slot) noexcept {
 }
 
 bool SPSCQueue::commit_write(const WriteSlot& slot) noexcept {
-    auto new_index = write_index_ + slot.size + sizeof(QueueSlotHeader);
+    auto new_index = write_index_.load(std::memory_order_acquire) + slot.size + sizeof(QueueSlotHeader);
     new_index = (new_index + kCacheLineSize - 1) & ~(kCacheLineSize - 1);
     new_index = new_index % capacity_;
 
     write_index_.store(new_index, std::memory_order_release);
+    data_available_.store(true, std::memory_order_release);
 
     return true;
 }
 
 bool SPSCQueue::commit_read(const ReadSlot& slot) noexcept {
-    auto new_index = read_index_ + slot.size + sizeof(QueueSlotHeader);
+    auto new_index = read_index_.load(std::memory_order_acquire) + slot.size + sizeof(QueueSlotHeader);
     new_index = (new_index + kCacheLineSize - 1) & ~(kCacheLineSize - 1);
     new_index = new_index % capacity_;
     read_index_.store(new_index, std::memory_order_release);
+
+    if (new_index == write_index_.load(std::memory_order_acquire)) {
+        data_available_.store(false, std::memory_order_release);
+    }
 
     return true;
 }

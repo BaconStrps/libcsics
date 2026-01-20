@@ -60,8 +60,7 @@ class SPSCQueue {
     std::size_t capacity() const { return capacity_; }
 
     bool has_pending_data() const noexcept {
-        return read_index_.load(std::memory_order_acquire) !=
-               write_index_.load(std::memory_order_acquire);
+        return data_available_.load(std::memory_order_acquire);
     }
 
    private:
@@ -79,6 +78,7 @@ class SPSCQueue {
     alignas(kCacheLineSize) std::atomic<size_t> read_index_;
     alignas(kCacheLineSize) std::atomic<size_t> write_index_;
     alignas(kCacheLineSize) std::atomic<bool> stopped_;
+    alignas(kCacheLineSize) std::atomic<bool> data_available_;
 
    public:
     struct ReadSlot {
