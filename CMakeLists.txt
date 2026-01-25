@@ -13,6 +13,7 @@ endif()
 option(CSICS_BUILD_QUEUE "Build the queue module" ON)
 option(CSICS_BUILD_RADIO "Build the radio module" ON)
 option(CSICS_USE_UHD "Use the UHD library for USRP support" ON)
+option(CSICS_FORCE_SYSTEM_UHD "Force using system-installed UHD library" OFF)
 option(CSICS_ENABLE_TESTS "Enable building tests" ON)
 
 set(INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)

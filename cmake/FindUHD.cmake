@@ -1,7 +1,4 @@
-
-if (MSVC)
-
-    message(STATUS "Using vendored UHD.")
+if (NOT UHD_FOUND AND MSVC AND NOT CSICS_FORCE_SYSTEM_UHD)
     set(UHD_ROOT ${CMAKE_BINARY_DIR}/vendor/msvc/uhd)
     file(
         ARCHIVE_EXTRACT
@@ -14,6 +11,7 @@ if (MSVC)
         set(UHD_LIBRARIES ${UHD_ROOT}/lib/uhd.lib ${Boost_LIBRARY_DIR})
         set(UHD_INCLUDE_DIRS ${UHD_ROOT}/include ${Boost_INCLUDE_DIR})
         set(UHD_FOUND TRUE)
+        set(UHD_VENDORED TRUE)
     else()
         message(WARNING "Boost not installed. Please install Boost to use UHD.")
         set(UHD_FOUND FALSE)
