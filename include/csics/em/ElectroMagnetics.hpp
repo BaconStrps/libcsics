@@ -20,11 +20,12 @@ constexpr auto to_watts(auto dbm) -> double {
 
 constexpr auto to_dbm(auto watts) -> double {
     if (watts <= 0.0) {
-        std::cerr << "Warning: Power in watts must be positive to convert to dBm. "
-                  << "Received: " << watts
-                  << ". Returning -1000 dBm as a practical approximation of "
-                     "negative infinity."
-                  << std::endl;
+        std::cerr
+            << "Warning: Power in watts must be positive to convert to dBm. "
+            << "Received: " << watts
+            << ". Returning -1000 dBm as a practical approximation of "
+               "negative infinity."
+            << std::endl;
         return -1000.0;  // effectively negative infinity for practical purposes
                          // without introducing NaN or -inf which can cause
                          // issues in calculations
@@ -170,12 +171,10 @@ class FreeSpaceEnvironmentalModel {
                 (static_cast<double>(i) / grid.fft_size) * grid.sample_rate_hz +
                 grid.frequency_range().bottom();
             double path_loss =
-                std::pow((4.0 * M_PI * distance * freq / kSpeedOfLight), 2);
+                std::pow((4.0 * M_PI * distance * kSpeedOfLight/freq), 2);
             double phase_shift = -2.0 * M_PI * distance * freq / kSpeedOfLight;
-            // std::cerr << "Path loss: " << path_loss << " at frequency " << freq
-            //           << " Hz and distance " << distance << " m" << std::endl;
             samples[i] =
-                linalg::Polar<float>{1.0f / static_cast<float>(path_loss),
+                linalg::Polar<float>{1 / static_cast<float>(path_loss),
                                      static_cast<float>(phase_shift)};
         }
         return dsp::TransferFunction(grid, std::move(samples));
@@ -195,7 +194,7 @@ class IsometricTransmitter {
 
     auto transmit_towards(geo::GeospatialCoordinate auto coord) const {
         auto dist = geo::euclidean.distance(location_, coord);
-        //auto geodetic = geo::to_geodetic(coord);
+        // auto geodetic = geo::to_geodetic(coord);
 
         return Propagation(dist, dsp::TransferFunction::ideal_bandpass(
                                      center_frequency_, bandwidth_, grid_) *
@@ -208,6 +207,44 @@ class IsometricTransmitter {
     float power_;             // watts
     float center_frequency_;  // Hz
     float bandwidth_;         // Hz
+    geo::LatLongAlt<double> location_;
+    dsp::SpectralGrid grid_;
+};
+
+class SincTransmitter {
+   public:
+    SincTransmitter(float power, float center_frequency, float bandwidth,
+                    dsp::SpectralGrid grid, float hpbw, linalg::Degrees<float> beam_direction,
+                    geo::GeospatialCoordinate auto location)
+        : power_(power),
+          center_frequency_(center_frequency),
+          bandwidth_(bandwidth),
+          hpbw_(hpbw),
+          beam_direction_(beam_direction),
+          location_(geo::to_geodetic(location)),
+          grid_(grid) {}
+
+    auto transmit_towards(geo::GeospatialCoordinate auto coord) const {
+        auto azel = geo::az_el(location_, coord);
+        auto dist = geo::euclidean.distance(location_, coord);
+        double azimuth_diff = std::abs(beam_direction_ - azel.azimuth);
+        return Propagation(dist, dsp::TransferFunction::ideal_bandpass(
+                                     center_frequency_, bandwidth_, grid_) *
+                                     sinc_pattern(azimuth_diff));
+    }
+
+    linalg::Complex<float> sinc_pattern(float angle_diff) const {
+        auto sinc_arg = 1.39156f * std::sin(linalg::radians(angle_diff)) / (std::sin(linalg::Radians(hpbw_ / 2.0f)));
+        auto sinc = std::abs(std::sin(sinc_arg) / sinc_arg);
+        return linalg::Complex<float>{power_ * sinc, 0.0f};
+    }
+
+   private:
+    float power_;             // watts
+    float center_frequency_;  // Hz
+    float bandwidth_;         // Hz
+    float hpbw_;              // degrees
+    linalg::Degrees<float> beam_direction_;    // degrees
     geo::LatLongAlt<double> location_;
     dsp::SpectralGrid grid_;
 };

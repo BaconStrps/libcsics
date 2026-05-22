@@ -25,9 +25,46 @@ class Radians {
         : radians_(d.degrees() * static_cast<T>(M_PI) /
                    static_cast<T>(180.0f)) {}
 
+    constexpr operator Degrees<T>() const { return Degrees<T>(*this); }
+    constexpr operator T() const { return radians_; }
+
+    constexpr Radians<T>& operator=(const T& r) {
+        radians_ = r;
+        return *this;
+    }
+
+    constexpr Radians<T>& operator=(const Degrees<T>& d) {
+        radians_ = d.degrees() * static_cast<T>(M_PI) /
+                   static_cast<T>(180.0f);
+        return *this;
+    }
+
+    constexpr Radians<T> operator+( const Radians<T>& other) const {
+        return Radians<T>(radians_ + other.radians_);
+    }
+
+    constexpr Radians<T> operator-( const Radians<T>& other) const {
+        return Radians<T>(radians_ - other.radians_);
+    }
+
+    static constexpr Radians<T> from_degrees(const T& degrees) {
+        return Radians<T>(degrees * static_cast<T>(M_PI) /
+                         static_cast<T>(180.0f));
+    }
+
+     static constexpr Radians<T> from_degrees(const Degrees<T>& degrees) {
+        return Radians<T>(degrees.degrees() * static_cast<T>(M_PI) /
+                         static_cast<T>(180.0f));
+    }
+
    private:
     T radians_;
 };
+
+template <std::floating_point T>
+constexpr Radians<T> radians(T r) {
+    return Radians<T>::from_degrees(r);
+}
 
 template <std::floating_point T>
 class Degrees {

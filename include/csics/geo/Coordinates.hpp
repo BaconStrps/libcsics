@@ -143,6 +143,30 @@ static_assert(!GeodeticLike<Geocentric<double, WGS84>>,
 static_assert(GeodeticCoordinate<LatLongAlt<double, WGS84>, WGS84>,
               "LatLongAlt does not satisfy GeodeticCoordinate concept");
 
+
+template <typename T, Ellipsoid E = WGS84>
+class ENU {
+    public:
+    using value_type = T;
+    using ellipsoid_v = E;
+    static constexpr auto cols_v = linalg::Vec3<T>::cols_v;
+    static constexpr auto rows_v = linalg::Vec3<T>::rows_v;
+
+    constexpr ENU(T east, T north, T up) : east_(east), north_(north), up_(up) {}
+    constexpr ENU() : east_(0), north_(0), up_(0) {}
+
+    constexpr const T east() const { return east_; }
+    constexpr const T north() const { return north_; }
+    constexpr const T up() const { return up_; }
+
+    private:
+    T east_;
+    T north_;
+    T up_;
+};
+
+
+
 };  // namespace csics::geo
 
 namespace csics::geo {
