@@ -119,9 +119,10 @@ NetStatus connect(MQTTEndpoint::Internal* internal_,
 
 
     MQTTAsync_connectOptions conn_opts = MQTTAsync_connectOptions_initializer;
-    conn_opts.keepAliveInterval = 30;
-    conn_opts.cleansession = 1;
+    conn_opts.keepAliveInterval = 10;
+    conn_opts.cleansession = 0;
     conn_opts.ssl = ssl_opts.get();
+    conn_opts.automaticReconnect = 1;
     String username = params.username;
     String password = params.password;
     conn_opts.username =

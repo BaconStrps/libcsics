@@ -62,8 +62,18 @@ class Radians {
 };
 
 template <std::floating_point T>
-constexpr Radians<T> radians(T r) {
+constexpr Radians<T> to_radians(T r) {
     return Radians<T>::from_degrees(r);
+}
+
+template <std::floating_point T>
+constexpr Degrees<T> to_degrees(T d) {
+    return Degrees<T>{d * 180.0f / M_PI};
+}
+
+template <std::floating_point T>
+constexpr Degrees<T> to_degrees(Radians<T> r) {
+    return to_degrees(r.radians());
 }
 
 template <std::floating_point T>

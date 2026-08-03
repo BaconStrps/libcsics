@@ -227,16 +227,19 @@ class SincTransmitter {
     auto transmit_towards(geo::GeospatialCoordinate auto coord) const {
         auto azel = geo::az_el(location_, coord);
         auto dist = geo::euclidean.distance(location_, coord);
-        double azimuth_diff = std::abs(beam_direction_ - azel.azimuth);
+        double azimuth_diff = std::abs(beam_direction_ - linalg::to_degrees(azel.azimuth));
+        if (azimuth_diff > 180.0f) azimuth_diff = 360.0f - azimuth_diff;
         return Propagation(dist, dsp::TransferFunction::ideal_bandpass(
                                      center_frequency_, bandwidth_, grid_) *
                                      sinc_pattern(azimuth_diff));
     }
 
     linalg::Complex<float> sinc_pattern(float angle_diff) const {
-        auto sinc_arg = 1.39156f * std::sin(linalg::radians(angle_diff)) / (std::sin(linalg::Radians(hpbw_ / 2.0f)));
+        auto sinc_arg = 1.39156f * std::sin(linalg::to_radians(angle_diff)) / (std::sin(linalg::to_radians(hpbw_) / 2.0f));
+        if (sinc_arg < 1e-6f) return linalg::Complex<float>{power_, 0.0f};
         auto sinc = std::abs(std::sin(sinc_arg) / sinc_arg);
-        return linalg::Complex<float>{power_ * sinc, 0.0f};
+        float cos_rolloff = std::max(0.01, std::cos(linalg::to_radians(angle_diff)/2.0));
+        return linalg::Complex<float>{power_ * sinc * cos_rolloff, 0.0f};
     }
 
    private:
