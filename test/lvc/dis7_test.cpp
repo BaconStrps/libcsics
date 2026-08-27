@@ -1,17 +1,11 @@
-#include <dis7/ElectromagneticEmissionsPdu.h>
-#include <dis7/EntityStatePdu.h>
-#include <dis7/Vector3Float.h>
 #include <gtest/gtest.h>
+#include <gmock/gmock.h>
 
 #include <csics/csics.hpp>
 
 #include "csics/lvc/dis/PDUs.hpp"
 #include "csics/lvc/dis/serde.hpp"
 #include "csics/serialization/Common.hpp"
-#include "dis7/BeamData.h"
-#include "dis7/utils/DataStream.h"
-#include "dis7/utils/Endian.h"
-#include "gmock/gmock.h"
 
 csics::lvc::dis::PDUHeader create_sample_pdu_header() {
     using namespace csics::lvc;

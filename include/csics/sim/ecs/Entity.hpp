@@ -2,7 +2,6 @@
 
 #include <cstdint>
 #include <ostream>
-#include "csics/lvc/dis/PDUs.hpp"
 
 namespace csics::sim::ecs {
 struct Entity {

@@ -234,6 +234,8 @@ class SincTransmitter {
                                      sinc_pattern(azimuth_diff));
     }
 
+    auto location() const { return location_; }
+
     linalg::Complex<float> sinc_pattern(float angle_diff) const {
         auto sinc_arg = 1.39156f * std::sin(linalg::to_radians(angle_diff)) / (std::sin(linalg::to_radians(hpbw_) / 2.0f));
         if (sinc_arg < 1e-6f) return linalg::Complex<float>{power_, 0.0f};
